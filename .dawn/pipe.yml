@@ -1,0 +1,22 @@
+init:
+  - name: pkginfo
+
+dev:
+  - name: shell
+    script:
+      - DEBUG=none ts-node ./src/debug.ts
+
+build:
+  - name: shell
+    script:
+      - tsc --locale zh-cn -d --esModuleInterop
+
+test:
+  - name: lint
+  - name: unit
+
+publish:
+  - name: shell
+    script:
+      - dn test
+      - npm pu
