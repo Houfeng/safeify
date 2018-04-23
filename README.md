@@ -3,7 +3,7 @@
 > 让你的 Node 应用安全的隔离的执行非信任的用户自定义代码。
 
 
-![1](https://segmentfault.com/img/bV88V9)
+![1](https://dn-cnode.qbox.me/FhCV7Ayx7uZy6mh6EHBt3IzdBI2Z)
 
 ## 有哪些动态执行脚本的场景？
 
