@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as childProcess from 'child_process';
 import { ChildProcess } from 'child_process';
 import { ISafeifyOptions } from './ISafeifyOptions';
+import { CGroups } from './CGroups';
 import { IWorker } from './IWorker';
 import { WorkerStatus } from './WorkerStatus';
 import { MessageType } from './MessageType';
@@ -14,6 +15,8 @@ const log = require('debug')('safeify');
 const cpuTotal = os.cpus().length;
 const timeout = 50;
 const asyncTimeout = 500;
+const cpuQuota = 0.5;
+const memoryQuota = 500;
 const quantity = cpuTotal > 1 ? cpuTotal : 2;
 const runnerFile = require.resolve('./runner');
 const sandbox = Object.create(null);
@@ -24,13 +27,17 @@ export class Safeify {
   private workers: Array<IWorker> = [];
   private pendingScripts: Array<Script> = [];
   private runningScripts: Array<Script> = [];
+  private cgroups: CGroups = null;
 
   constructor(opts: ISafeifyOptions = {}) {
-    Object.assign(this.options, { timeout, quantity, sandbox }, opts);
+    Object.assign(this.options, {
+      timeout, quantity, sandbox
+    }, opts);
+    this.createControlGroup();
     this.createWorkers();
   }
 
-  public distory() {
+  public distory = () => {
     this.workers.forEach(item => {
       item.process.removeAllListeners('message');
       item.process.removeAllListeners('disconnect');
@@ -113,8 +120,18 @@ export class Safeify {
     newWorkers.forEach(item => this.execute(item));
   }
 
+  private createControlGroup() {
+    this.cgroups = new CGroups('safeify_group');
+    const { cpuQuota, memoryQuota } = this.options;
+    this.cgroups.set({
+      cpu: { cfs_quota_us: 100000 * cpuQuota },
+      memory: { limit_in_bytes: 1048576 * memoryQuota }
+    });
+  }
+
   private createWorker() {
     const process = childProcess.fork(runnerFile);
+    this.cgroups.addProcess(process.pid);
     process.on('message', this.onWorkerMessage);
     process.on('disconnect', this.onWorkerDisconnect);
     const status = WorkerStatus.free;

@@ -130,7 +130,7 @@ script.runInContext(context);
 
 在社区中有一些开源的模块用于运行不信任代码，例如 `sandbox`、`vm2`、`jailed` 等。相比较而言 `vm2` 对各方面做了更多的安全工作，相对安全些。
 
-从 `vm2` 的官方 `READM` 中可以看到，它基于 Node.js 内建的 VM 模块，来建立基础的沙箱环境，然后同时使用上了文介绍过的 ES6 的 `Proxy` 技术来防止沙箱脚本逃逸。
+从 `vm2` 的官方 `README` 中可以看到，它基于 Node.js 内建的 VM 模块，来建立基础的沙箱环境，然后同时使用上了文介绍过的 ES6 的 `Proxy` 技术来防止沙箱脚本逃逸。
 
 用同样的测试代码来试试 `vm2`
 
@@ -174,7 +174,7 @@ vm.run('Promise = (async function(){})().constructor;new Promise(()=>{});');
 
 那么，我们是不是可以尝试，将非受信代码，通过 vm2 这个模块隔离在一个独立的进程中执行呢？然后，执行超时时，直接将隔离的进程干掉，但这里我们需要考虑如下几个问题
 
-**通过进程池统调度管理沙箱进程**
+**通过进程池统一调度管理沙箱进程**
 
 如果来一个执行任务，创建一个进程，用完销毁，仅处理进程的开销就已经稍大了，并且也不能不设限的开新进程和宿主应用抢资源，那么，需要建一个进程池，所有任务到来会创建一个 `Script` 实例，先进入一个 `pending` 队列，然后直接将 `script` 实例的 `defer` 对象返回，调用处就能 `await` 执行结果了，然后由 `sandbox master` 根据工程进程的空闲程序来调度执行，master 会将 `script` 的执行信息，包括重要的 `ScriptId`，发送给空闲的 worker，worker 执行完成后会将「结果 + script 信息」回传给 master，master 通过 ScriptId 识别是哪个脚本执行完毕了，就是结果进行 `resolve` 或 reject 处理。
 
@@ -186,11 +186,26 @@ vm.run('Promise = (async function(){})().constructor;new Promise(()=>{});');
 
 其中，如果想法公开一个方法给 sandbox，因为不在一个进程，并不能方便的将一个方案的引用传递给 sandbox。我们可以将宿主的方法，在传递给 sandbox worker 之类做一下处理，转换为一个「描述对象」，包括了允许 sandbox 调用的方法信息，然后将信息，如同其它数据一样发送给 worker 进程，worker 收到数据后，识出来所「方法描述对象」，然后在 worker 进程中的 sandbox 对象上建立代理方法，代理方法同样通过 IPC 和 master 通讯。
 
-** 最终，我们建立了一个大约这样的「沙箱环境」**
+**针对沙箱进程进行 CPU 和内存配额限制**
+
+在 Linux 平台，通过 CGoups 对沙箱进程进行整体的 CPU 和内存等资源的配额限制，Cgroups 是 Control Groups 的缩写，是 Linux 内核提供的一种可以限制、记录、隔离进程组（Process Groups）所使用的物理资源（如：CPU、Memory,IO 等等）的机制。最初由 Google 的工程师提出，后来被整合进 Linux 内核。Cgroups 也是 LXC 为实现虚拟化所使用的资源管理手段，可以说没有 CGroups 就没有 LXC。
+
+
+**最终，我们建立了一个大约这样的「沙箱环境**
 
 ![3](https://segmentfault.com/img/bV88VU?w=1642&h=820)
 
 如此这般处理起来是不是感觉很麻烦？但我们就有了一个更加安全一些的沙箱环境了，这些处理。笔者已经基于 TypeScript 编写，并封装为一个独立的模块 `Safeify`。
+
+
+相较于内建的 VM 及常见的几个沙箱模块， Safeify 具有如下特点：
+
+- 为将要执行的动态代码建立专门的进程池，与宿主应用程序分离在不同的进程中执行
+- 支持配置沙箱进程池的最大进程数量
+- 支持限定同步代码的最大执行时间，同时也支持限定包括异步代码在内的执行时间
+- 支持限定沙箱进程池的整体的 CPU 资源配额（小数）
+- 支持限定沙箱进程池的整体的最大的内存限制（单位 m）
+
 
 GitHub: https://github.com/Houfeng/safeify ，欢迎 Star & Issues
 
@@ -208,7 +223,9 @@ import { Safeify } from './Safeify';
 const safeVm = new Safeify({
   timeout: 50,          //超时时间，默认 50ms
   asyncTimeout: 500,    //包含异步操作的超时时间，默认 500ms
-  quantity: 4           //沙箱进程数量，默认同 CPU 核数
+  quantity: 4,          //沙箱进程数量，默认同 CPU 核数
+  memoryQuota: 500,     //沙箱最大能使用的内存（单位 m），默认 500m
+  cpuQuota: 0.5,        //沙箱的 cpu 资源配额（百分比），默认 50%
 });
 
 const context = {

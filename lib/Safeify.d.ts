@@ -4,8 +4,9 @@ export declare class Safeify {
     private workers;
     private pendingScripts;
     private runningScripts;
+    private cgroups;
     constructor(opts?: ISafeifyOptions);
-    distory(): void;
+    distory: () => void;
     readonly workerTotal: number;
     readonly pendingTotal: number;
     readonly runningTotal: number;
@@ -13,6 +14,7 @@ export declare class Safeify {
     private onWorkerMessage;
     private onWorkerDone(message);
     private onWorkerDisconnect;
+    private createControlGroup();
     private createWorker();
     private createWorkers(num?);
     private execute(freeWorker?);

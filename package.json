@@ -1,6 +1,6 @@
 {
   "name": "safeify",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
@@ -10,9 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "vm2": "^3.5.2",
+    "@types/mkdirp": "^0.5.2",
     "debug": "^3.1.0",
-    "ntils": "^4.0.0"
+    "mkdirp": "^0.5.1",
+    "ntils": "^4.0.0",
+    "vm2": "^3.5.2"
   },
   "devDependencies": {
     "@types/debug": "^0.0.30",
