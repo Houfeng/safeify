@@ -3,6 +3,6 @@ export declare class CGroups {
     private name;
     private resources;
     constructor(name: string);
-    set(resources: any): void;
-    addProcess(pid: number): void;
+    set(resources: any): Promise<void[][]>;
+    addProcess(pid: number): Promise<void[]>;
 }

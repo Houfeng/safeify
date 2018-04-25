@@ -28,13 +28,19 @@ export class Safeify {
   private pendingScripts: Array<Script> = [];
   private runningScripts: Array<Script> = [];
   private cgroups: CGroups = null;
+  private inited: boolean = false;
 
   constructor(opts: ISafeifyOptions = {}) {
     Object.assign(this.options, {
-      timeout, quantity, sandbox
+      timeout, quantity, sandbox, cpuQuota, memoryQuota
     }, opts);
-    this.createControlGroup();
-    this.createWorkers();
+  }
+
+  public async init() {
+    if (this.inited) return;
+    this.inited = true;
+    await this.createControlGroup();
+    await this.createWorkers();
   }
 
   public distory = () => {
@@ -111,42 +117,44 @@ export class Safeify {
     }
   }
 
-  private onWorkerDisconnect = () => {
+  private onWorkerDisconnect = async () => {
     log('onWorkerDisconnect', 'pendingScripts', this.pendingScripts.length);
     this.workers = this.workers.filter(item => item.process.connected);
     const num = this.options.quantity - this.workers.length;
-    const newWorkers = this.createWorkers(num);
+    const newWorkers = await this.createWorkers(num);
     log('onWorkerDisconnect', 'newWorkers', newWorkers.length);
     newWorkers.forEach(item => this.execute(item));
   }
 
   private createControlGroup() {
-    this.cgroups = new CGroups('safeify_group');
+    this.cgroups = new CGroups('safeify');
     const { cpuQuota, memoryQuota } = this.options;
-    this.cgroups.set({
+    return this.cgroups.set({
       cpu: { cfs_quota_us: 100000 * cpuQuota },
       memory: { limit_in_bytes: 1048576 * memoryQuota }
     });
   }
 
-  private createWorker() {
+  private async createWorker() {
     const process = childProcess.fork(runnerFile);
-    this.cgroups.addProcess(process.pid);
+    await this.cgroups.addProcess(process.pid);
     process.on('message', this.onWorkerMessage);
     process.on('disconnect', this.onWorkerDisconnect);
     const status = WorkerStatus.free;
     return { process, status };
   }
 
-  private createWorkers(num?: number) {
+  private async createWorkers(num?: number) {
     if (!num) num = this.options.quantity;
     const newWorkers = [];
     for (let i = 0; i < num; i++) {
-      const worker = this.createWorker();
-      this.workers.push(worker);
-      newWorkers.push(worker);
+      newWorkers.push((async () => {
+        const worker = await this.createWorker();
+        this.workers.push(worker);
+        return worker;
+      })());
     }
-    return newWorkers;
+    return Promise.all(newWorkers);
   }
 
   private execute(freeWorker?: IWorker) {
@@ -170,7 +178,8 @@ export class Safeify {
     return result[1] || '';
   }
 
-  public run(code: string | Function, sandbox?: any) {
+  public async run(code: string | Function, sandbox?: any) {
+    await this.init();
     code = isFunction(code) ? this.parseCode(<Function>code) : <string>code;
     log('run', code);
     const { timeout } = this.options;

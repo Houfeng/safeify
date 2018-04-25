@@ -5,7 +5,9 @@ export declare class Safeify {
     private pendingScripts;
     private runningScripts;
     private cgroups;
+    private inited;
     constructor(opts?: ISafeifyOptions);
+    init(): Promise<void>;
     distory: () => void;
     readonly workerTotal: number;
     readonly pendingTotal: number;
