@@ -39,7 +39,8 @@ export class Safeify {
   public async init() {
     if (this.inited) return;
     this.inited = true;
-    await this.createControlGroup();
+    const { unrestricted } = this.options;
+    if (!unrestricted) await this.createControlGroup();
     await this.createWorkers();
   }
 
@@ -136,8 +137,9 @@ export class Safeify {
   }
 
   private async createWorker() {
+    const { unrestricted } = this.options;
     const process = childProcess.fork(runnerFile);
-    await this.cgroups.addProcess(process.pid);
+    if (!unrestricted) await this.cgroups.addProcess(process.pid);
     process.on('message', this.onWorkerMessage);
     process.on('disconnect', this.onWorkerDisconnect);
     const status = WorkerStatus.free;
