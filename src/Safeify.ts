@@ -13,8 +13,8 @@ const { isFunction } = require('ntils');
 const log = require('debug')('safeify');
 
 const cpuTotal = os.cpus().length;
-const timeout = 50;
-const asyncTimeout = 500;
+const timeout = 500;
+const asyncTimeout = 3000;
 const cpuQuota = 0.5;
 const memoryQuota = 500;
 const quantity = cpuTotal > 1 ? cpuTotal : 2;
@@ -32,7 +32,7 @@ export class Safeify {
 
   constructor(opts: ISafeifyOptions = {}) {
     Object.assign(this.options, {
-      timeout, quantity, sandbox, cpuQuota, memoryQuota
+      timeout, asyncTimeout, quantity, sandbox, cpuQuota, memoryQuota
     }, opts);
   }
 
@@ -184,7 +184,7 @@ export class Safeify {
     await this.init();
     code = isFunction(code) ? this.parseCode(<Function>code) : <string>code;
     log('run', code);
-    const { timeout } = this.options;
+    const { timeout, asyncTimeout } = this.options;
     const script = new Script({ code, timeout, asyncTimeout, sandbox });
     this.pendingScripts.push(script);
     this.execute();

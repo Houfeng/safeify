@@ -7,8 +7,8 @@ console.time('debug');
 (async function () {
 
   const safeVm = new Safeify({
-    timeout: Number.MAX_SAFE_INTEGER,
-    asyncTimeout: Number.MAX_SAFE_INTEGER,
+    timeout: 3000,
+    asyncTimeout: 300000,
     quantity: 2
   });
   await safeVm.init();
@@ -23,7 +23,7 @@ console.time('debug');
   console.time('测试');
   try {
     const result1 = await safeVm.run(`return add(1,2)`, context);
-    const result2 = await safeVm.run(`while(true){}`, context);
+    //const result2 = await safeVm.run(`while(true){}`, context);
     console.log('成功', result1);
   } catch (err) {
     console.log('失败', err.stack);
