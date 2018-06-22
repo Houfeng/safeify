@@ -6,6 +6,7 @@ export declare class Safeify {
     private runningScripts;
     private cgroups;
     private inited;
+    private presets;
     constructor(opts?: ISafeifyOptions);
     init(): Promise<void>;
     distory: () => void;
@@ -20,6 +21,7 @@ export declare class Safeify {
     private createWorker();
     private createWorkers(num?);
     private execute(freeWorker?);
-    private parseCode(func);
+    private toCode(code);
+    preset(code: string | Function): void;
     run(code: string | Function, sandbox?: any): Promise<any>;
 }

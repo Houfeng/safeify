@@ -11,7 +11,14 @@ console.time('debug');
     asyncTimeout: 300000,
     quantity: 2
   });
+
   await safeVm.init();
+  safeVm.preset(() => {
+    function require(x: string) {
+      return x;
+    }
+  });
+
   const context = {
     a: 1, b: 2,
     system: {
@@ -24,7 +31,7 @@ console.time('debug');
   console.log('开始');
   console.time('测试');
   try {
-    const result1 = await safeVm.run(`return system.add(1,2)`, context);
+    const result1 = await safeVm.run(`return require('xxxx')`, context);
     console.log('成功', result1);
   } catch (err) {
     console.log('失败', err.stack);

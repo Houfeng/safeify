@@ -29,6 +29,7 @@ export class Safeify {
   private runningScripts: Array<Script> = [];
   private cgroups: CGroups = null;
   private inited: boolean = false;
+  private presets: Array<string> = [];
 
   constructor(opts: ISafeifyOptions = {}) {
     Object.assign(this.options, {
@@ -178,14 +179,23 @@ export class Safeify {
     });
   }
 
-  private parseCode(func: Function) {
-    const result = /\{([\s\S]*)\}/.exec(func.toString());
-    return result[1] || '';
+  private toCode(code: string | Function): string {
+    if (!code) return ';';
+    if (isFunction(code)) {
+      const result = /\{([\s\S]*)\}/.exec(code.toString());
+      return result[1] || '';
+    } else {
+      return code.toString();
+    }
+  }
+
+  public preset(code: string | Function) {
+    this.presets.push(this.toCode(code));
   }
 
   public async run(code: string | Function, sandbox?: any) {
     await this.init();
-    code = isFunction(code) ? this.parseCode(<Function>code) : <string>code;
+    code = [...this.presets, this.toCode(code), os.EOL].join(';');
     log('run', code);
     const { timeout, asyncTimeout } = this.options;
     const script = new Script({ code, timeout, asyncTimeout, sandbox });
