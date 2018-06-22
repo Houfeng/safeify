@@ -1,13 +1,22 @@
 import { IScriptOptions } from './IScriptOptions';
-import { createProxy } from './Proxy';
+import { createCallProxy } from './Proxy';
 
 const log = require('debug')('script');
-const { newGuid, each, isFunction } = require('ntils');
+const {
+  newGuid, each, isFunction, isObject, isArray, isDate
+} = require('ntils');
 
-function createParams(sandbox: any) {
+function convertParams(sandbox: any, breadcrumb: Array<string> = []) {
   const result = Object.assign({}, sandbox);
   each(result, (name: string, value: any) => {
-    result[name] = isFunction(value) ? createProxy() : value;
+    if (isFunction(value)) {
+      result[name] = createCallProxy([...breadcrumb, name]);
+    } else if (isObject(value) && !isArray(value) && !isDate(value)) {
+      breadcrumb.push(name);
+      result[name] = convertParams(value, breadcrumb);
+    } else {
+      result[name] = value;
+    }
   });
   return result;
 }
@@ -31,7 +40,7 @@ export class Script {
     this.id = newGuid();
     if (!this.code) this.code = '';
     if (!this.sandbox) this.sandbox = {};
-    this.params = createParams(this.sandbox);
+    this.params = convertParams(this.sandbox);
     this.defer = new Promise((resolve, reject) => {
       this.resolve = resolve;
       this.reject = reject;

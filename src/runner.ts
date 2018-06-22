@@ -2,10 +2,10 @@ import { VM } from 'vm2';
 import { MessageType } from './MessageType';
 import { IMessage } from './IMessage';
 import { Script } from './Script';
-import { isProxy } from './Proxy';
+import { isCallProxy, getCallName } from './Proxy';
 import { Call } from './Call';
 
-const { each } = require('ntils');
+const { each, isObject, isArray, isDate } = require('ntils');
 
 const pendingCalls: Array<Call> = [];
 
@@ -21,10 +21,11 @@ function sendResult(message: any) {
   process.send({ pid, type, ...message });
 }
 
-function createProxyFunc(scriptId: string, name: string) {
+function createProxyFunc(scriptId: string, value: string) {
   const type = MessageType.call;
   const pid = process.pid;
   return (...args: Array<any>) => {
+    const name = getCallName(value);
     const call = new Call({ name, args });
     pendingCalls.push(call);
     process.send({ pid, scriptId, type, call });
@@ -32,7 +33,7 @@ function createProxyFunc(scriptId: string, name: string) {
   };
 }
 
-function receiveProxyRet(call: Call) {
+function receiveCallRet(call: Call) {
   const pendingIndex = pendingCalls.findIndex(item => item.id === call.id);
   if (pendingIndex > -1) {
     const pendingCall = pendingCalls.splice(pendingIndex, 1)[0];
@@ -46,17 +47,23 @@ function receiveProxyRet(call: Call) {
   }
 }
 
-function wrapParams(scriptId: string, params: any) {
+function convertParams(scriptId: string, params: any) {
   const result = Object.create(null);
   each(params, (name: string, value: any) => {
-    result[name] = isProxy(value) ? createProxyFunc(scriptId, name) : value;
+    if (isCallProxy(value)) {
+      result[name] = createProxyFunc(scriptId, value)
+    } else if (isObject(value) && !isArray(value) && !isDate(value)) {
+      result[name] = convertParams(scriptId, value);
+    } else {
+      result[name] = value;
+    }
   });
   return result;
 }
 
 async function run(script: Script) {
   const { timeout, asyncTimeout, code, params } = script;
-  const sandbox = wrapParams(script.id, params);
+  const sandbox = convertParams(script.id, params);
   const vm = new VM({ sandbox, timeout });
   let done = false;
   setTimeout(() => {
@@ -80,6 +87,6 @@ process.on('message', (message: IMessage) => {
     case MessageType.run:
       return run(message.script);
     case MessageType.ret:
-      return receiveProxyRet(message.call);
+      return receiveCallRet(message.call);
   }
 });

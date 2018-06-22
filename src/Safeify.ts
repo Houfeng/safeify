@@ -9,7 +9,7 @@ import { MessageType } from './MessageType';
 import { IMessage } from './IMessage';
 import { Script } from './Script';
 
-const { isFunction } = require('ntils');
+const { isFunction, getByPath } = require('ntils');
 const log = require('debug')('safeify');
 
 const cpuTotal = os.cpus().length;
@@ -71,7 +71,10 @@ export class Safeify {
     const script = this.runningScripts.find(item => item.id == scriptId);
     if (!script) return;
     try {
-      call.result = await script.sandbox[call.name](...call.args);
+      const breadcrumb = call.name.split('.');
+      const name = breadcrumb.pop();
+      const context = getByPath(script.sandbox, breadcrumb) || sandbox;
+      call.result = await context[name](...call.args);
     } catch (err) {
       call.error = err.message;
     }
