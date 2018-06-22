@@ -1,6 +1,7 @@
 import { IScriptOptions } from './IScriptOptions';
 import { createCallProxy } from './Proxy';
 
+const IGNORE_PARAM = /^\_\_/;
 const log = require('debug')('script');
 const {
   newGuid, each, isFunction, isObject, isArray, isDate
@@ -9,6 +10,7 @@ const {
 function convertParams(sandbox: any, breadcrumb: Array<string> = []) {
   const result = Object.assign({}, sandbox);
   each(result, (name: string, value: any) => {
+    if (IGNORE_PARAM.test(name)) return;
     if (isFunction(value)) {
       result[name] = createCallProxy([...breadcrumb, name]);
     } else if (isObject(value) && !isArray(value) && !isDate(value)) {
