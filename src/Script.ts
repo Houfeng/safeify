@@ -11,11 +11,11 @@ function convertParams(sandbox: any, breadcrumb: Array<string> = []) {
   const result = Object.create(null);
   each(sandbox, (name: string, value: any) => {
     if (IGNORE_PARAM.test(name)) return;
+    const currentBreadcrumb = [...breadcrumb, name];
     if (isFunction(value)) {
-      result[name] = createCallProxy([...breadcrumb, name]);
+      result[name] = createCallProxy(currentBreadcrumb);
     } else if (isObject(value) && !isArray(value) && !isDate(value)) {
-      breadcrumb.push(name);
-      result[name] = convertParams(value, breadcrumb);
+      result[name] = convertParams(value, currentBreadcrumb);
     } else {
       result[name] = value;
     }

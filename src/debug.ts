@@ -21,9 +21,19 @@ console.time('debug');
 
   const context = {
     a: 1, b: 2,
-    system: {
+    system1: {
       add(a: number, b: number) {
         return (a + b) * 2;
+      }
+    },
+    system2: {
+      add(a: number, b: number) {
+        return (a + b) * 2;
+      },
+      system3: {
+        add(a: number, b: number) {
+          return (a + b) * 2;
+        }
       }
     }
   };
@@ -31,7 +41,8 @@ console.time('debug');
   console.log('开始');
   console.time('测试');
   try {
-    const result1 = await safeVm.run(`return require('xxxx')`, context);
+    const result1 = await safeVm
+      .run(`return system2.system3.add(1,2)`, context);
     console.log('成功', result1);
   } catch (err) {
     console.log('失败', err.stack);
