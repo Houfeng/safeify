@@ -8,8 +8,8 @@ const {
 } = require('ntils');
 
 function convertParams(sandbox: any, breadcrumb: Array<string> = []) {
-  const result = Object.assign({}, sandbox);
-  each(result, (name: string, value: any) => {
+  const result = Object.create(null);
+  each(sandbox, (name: string, value: any) => {
     if (IGNORE_PARAM.test(name)) return;
     if (isFunction(value)) {
       result[name] = createCallProxy([...breadcrumb, name]);
