@@ -1,10 +1,8 @@
 import * as os from 'os';
 import * as childProcess from 'child_process';
-import { ChildProcess } from 'child_process';
 import { ISafeifyOptions } from './ISafeifyOptions';
 import { CGroups } from './CGroups';
 import { IWorker } from './IWorker';
-import { WorkerStatus } from './WorkerStatus';
 import { MessageType } from './MessageType';
 import { IMessage } from './IMessage';
 import { Script } from './Script';
@@ -12,12 +10,11 @@ import { Script } from './Script';
 const { isFunction, getByPath } = require('ntils');
 const log = require('debug')('safeify');
 
-const cpuTotal = os.cpus().length;
 const timeout = 500;
 const asyncTimeout = 3000;
 const cpuQuota = 0.5;
 const memoryQuota = 500;
-const quantity = cpuTotal > 1 ? cpuTotal : 2;
+const quantity = os.cpus().length * 2;
 const runnerFile = require.resolve('./runner');
 const sandbox = Object.create(null);
 
@@ -101,7 +98,7 @@ export class Safeify {
       const worker = this.workers.find(item => item.process.pid == pid);
       if (worker) {
         log('onWorkerDone free pid', worker.process.pid);
-        worker.status = WorkerStatus.free;
+        worker.stats--;
         this.execute(worker);
       }
     }
@@ -146,8 +143,8 @@ export class Safeify {
     if (!unrestricted) await this.cgroups.addProcess(process.pid);
     process.on('message', this.onWorkerMessage);
     process.on('disconnect', this.onWorkerDisconnect);
-    const status = WorkerStatus.free;
-    return { process, status };
+    const stats = 0;
+    return { process, stats };
   }
 
   private async createWorkers(num?: number) {
@@ -164,13 +161,13 @@ export class Safeify {
   }
 
   private execute(freeWorker?: IWorker) {
-    const worker = freeWorker ? freeWorker : this.workers
-      .find(item => item.status == WorkerStatus.free);
-    if (!worker || worker.status == WorkerStatus.busy) return;
+    const worker = freeWorker ? freeWorker :
+      this.workers.sort((a, b) => a.stats - b.stats)[0];
+    if (!worker) return;
     log('execute pid', worker.process.pid);
     const script = this.pendingScripts.shift();
     if (!script) return;
-    worker.status = WorkerStatus.busy;
+    worker.stats++;
     this.runningScripts.push(script);
     log('execute code', script.code);
     worker.process.send({
