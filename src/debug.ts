@@ -41,9 +41,9 @@ console.time('debug');
   console.log('开始');
   console.time('测试');
   try {
-    const result1 = await safeVm
-      .run(`return system2.system3.add(1,2)`, context);
-    console.log('成功', result1);
+    await Promise.all(new Array(2000).fill(1)
+      .map(() => safeVm.run(`return system2.system3.add(1,2)`, context)));
+    console.log('成功');
   } catch (err) {
     console.log('失败', err.stack);
   }
