@@ -25,7 +25,7 @@ console.time('debug');
   console.log('开始');
   console.time('测试');
   try {
-    await Promise.all(new Array(50000).fill(1)
+    await Promise.all(new Array(5000).fill(1)
       .map(() => safeVm.run(`return system.add(1,2)`, context)));
     console.log('成功');
   } catch (err) {
