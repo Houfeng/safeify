@@ -11,8 +11,8 @@ import { WorkerState } from './WorkerState';
 const { isFunction, getByPath } = require('ntils');
 const log = require('debug')('safeify');
 
-const timeout = 500;
-const asyncTimeout = 3000;
+const timeout = 1000;
+const asyncTimeout = 60000;
 const cpuQuota = 0.5;
 const memoryQuota = 500;
 const cpuCount = os.cpus().length;
@@ -48,7 +48,7 @@ export class Safeify {
     this.workers.forEach(item => {
       item.process.removeAllListeners('message');
       item.process.removeAllListeners('disconnect');
-      item.process.kill();
+      if (!item.process.killed) item.process.kill();
     });
     this.workers = [];
   }
@@ -100,8 +100,8 @@ export class Safeify {
     if (worker && !healthy) {
       worker.state = WorkerState.unhealthy;
       setTimeout(() => {
-        worker.process.disconnect();
-        worker.process.kill();
+        if (worker.process.connected) worker.process.disconnect();
+        if (!worker.process.killed) worker.process.kill();
       }, this.options.asyncTimeout + 1000);
     }
     if (this.pendingScripts.length > 0) this.execute();

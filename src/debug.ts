@@ -8,8 +8,10 @@ console.time('debug');
 
   const safeVm = new Safeify({
     timeout: 3000,
-    asyncTimeout: 10000,
+    asyncTimeout: 60000,
   });
+
+  await safeVm.init();
 
   const context = {
     a: 1, b: 2,
@@ -23,8 +25,7 @@ console.time('debug');
   console.log('开始');
   console.time('测试');
   try {
-    await safeVm.init();
-    await Promise.all(new Array(20000).fill(1)
+    await Promise.all(new Array(5000).fill(1)
       .map(() => safeVm.run(`return system.add(1,2)`, context)));
     console.log('成功');
   } catch (err) {
