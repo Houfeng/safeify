@@ -65,21 +65,17 @@ async function run(script: Script) {
   const { timeout, asyncTimeout, code, params } = script;
   const sandbox = convertParams(script.id, params);
   const vm = new VM({ sandbox, timeout });
-  let done = false;
-  setTimeout(() => {
-    if (done) return;
+  const timeoutTimer = setTimeout(() => {
     script.error = 'Script timeout';
-    sendResult({ script, willExit: true });
-    process.disconnect();
-    process.exit(0);
+    sendResult({ script, healthy: false });
   }, asyncTimeout);
   try {
     script.result = await vm.run(wrapCode(code));
   } catch (err) {
     script.error = err.message;
   }
-  done = true;
-  sendResult({ script });
+  clearTimeout(timeoutTimer);
+  sendResult({ script, healthy: true });
 }
 
 process.on('message', (message: IMessage) => {

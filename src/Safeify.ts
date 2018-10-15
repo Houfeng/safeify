@@ -6,6 +6,7 @@ import { IWorker } from './IWorker';
 import { MessageType } from './MessageType';
 import { IMessage } from './IMessage';
 import { Script } from './Script';
+import { WorkerState } from './WorkerState';
 
 const { isFunction, getByPath } = require('ntils');
 const log = require('debug')('safeify');
@@ -14,7 +15,8 @@ const timeout = 500;
 const asyncTimeout = 3000;
 const cpuQuota = 0.5;
 const memoryQuota = 500;
-const quantity = os.cpus().length * 2;
+const cpuCount = os.cpus().length;
+const quantity = cpuCount > 1 ? cpuCount : cpuCount * 2;
 const runnerFile = require.resolve('./runner');
 const sandbox = Object.create(null);
 
@@ -79,7 +81,7 @@ export class Safeify {
     const worker = this.workers.find(item => item.process.pid == pid);
     if (!worker) return;
     const type = MessageType.ret;
-    worker.process.send({ type, call })
+    worker.process.send({ type, call });
   }
 
   private onWorkerMessage = (message: IMessage) => {
@@ -92,40 +94,37 @@ export class Safeify {
   }
 
   private onWorkerDone(message: IMessage) {
-    const { pid, script, willExit } = message;
-    if (!willExit) {
-      //处理释放的 worker，并尝试处理新脚本
-      const worker = this.workers.find(item => item.process.pid == pid);
-      if (worker) {
-        log('onWorkerDone free pid', worker.process.pid);
-        worker.stats--;
-        this.execute(worker);
-      }
+    const { pid, script, healthy } = message;
+    const worker = this.workers.find(item => item.process.pid == pid);
+    if (worker && healthy) worker.stats--;
+    if (worker && !healthy) {
+      worker.state = WorkerState.unhealthy;
+      setTimeout(() => {
+        worker.process.disconnect();
+        worker.process.kill();
+      }, this.options.asyncTimeout + 1000);
     }
+    if (this.pendingScripts.length > 0) this.execute();
     //处理执行完的脚本
     const runningIndex = this.runningScripts
       .findIndex(item => item.id === script.id);
-    if (runningIndex > -1) {
-      const runningScript = this.runningScripts.splice(runningIndex, 1)[0];
-      if (runningScript) {
-        if (script.error) {
-          runningScript.reject(new Error(script.error), pid);
-          log('onWorkerDone error', script.id, script.error);
-        } else {
-          runningScript.resolve(script.result, pid);
-          log('onWorkerDone result', script.id, script.result);
-        }
-      }
+    if (runningIndex < 0) return;
+    const runningScript = this.runningScripts.splice(runningIndex, 1)[0];
+    if (!runningScript) return;
+    if (script.error) {
+      runningScript.reject(new Error(script.error), pid);
+      log('onWorkerDone error', script.id, script.error);
+    } else {
+      runningScript.resolve(script.result, pid);
+      log('onWorkerDone result', script.id, script.result);
     }
   }
 
   private onWorkerDisconnect = async () => {
     log('onWorkerDisconnect', 'pendingScripts', this.pendingScripts.length);
     this.workers = this.workers.filter(item => item.process.connected);
-    const num = this.options.quantity - this.workers.length;
-    const newWorkers = await this.createWorkers(num);
-    log('onWorkerDisconnect', 'newWorkers', newWorkers.length);
-    newWorkers.forEach(item => this.execute(item));
+    await this.createWorkers();
+    if (this.pendingScripts.length > 0) this.execute();
   }
 
   private createControlGroup() {
@@ -137,32 +136,37 @@ export class Safeify {
     });
   }
 
-  private async createWorker() {
+  private async createWorker(): Promise<IWorker> {
     const { unrestricted } = this.options;
     const process = childProcess.fork(runnerFile);
     if (!unrestricted) await this.cgroups.addProcess(process.pid);
     process.on('message', this.onWorkerMessage);
     process.on('disconnect', this.onWorkerDisconnect);
-    const stats = 0;
-    return { process, stats };
+    const stats = 0, state = WorkerState.healthy;
+    return { process, stats, state };
   }
 
-  private async createWorkers(num?: number) {
-    if (!num) num = this.options.quantity;
-    const newWorkers = [];
+  private get healthyWorkers() {
+    return this.workers.filter(
+      worker => worker.process.connected && worker.state == WorkerState.healthy
+    );
+  }
+
+  private async createWorkers() {
+    const num = this.options.quantity - this.healthyWorkers.length;
+    const workers = [];
     for (let i = 0; i < num; i++) {
-      newWorkers.push((async () => {
+      workers.push((async () => {
         const worker = await this.createWorker();
         this.workers.push(worker);
         return worker;
       })());
     }
-    return Promise.all(newWorkers);
+    return Promise.all(workers);
   }
 
-  private execute(freeWorker?: IWorker) {
-    const worker = freeWorker ? freeWorker :
-      this.workers.sort((a, b) => a.stats - b.stats)[0];
+  private execute() {
+    const worker = this.healthyWorkers.sort((a, b) => a.stats - b.stats)[0];
     if (!worker) return;
     log('execute pid', worker.process.pid);
     const script = this.pendingScripts.shift();
@@ -170,10 +174,7 @@ export class Safeify {
     worker.stats++;
     this.runningScripts.push(script);
     log('execute code', script.code);
-    worker.process.send({
-      type: MessageType.run,
-      script: script
-    });
+    worker.process.send({ type: MessageType.run, script: script });
   }
 
   private toCode(code: string | Function): string {

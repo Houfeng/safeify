@@ -19,8 +19,9 @@ export declare class Safeify {
     private onWorkerDisconnect;
     private createControlGroup();
     private createWorker();
-    private createWorkers(num?);
-    private execute(freeWorker?);
+    private readonly healthyWorkers;
+    private createWorkers();
+    private execute();
     private toCode(code);
     preset(code: string | Function): void;
     run(code: string | Function, sandbox?: any): Promise<any>;
