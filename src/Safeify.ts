@@ -140,10 +140,15 @@ export class Safeify {
     const { unrestricted } = this.options;
     const process = childProcess.fork(runnerFile);
     if (!unrestricted) await this.cgroups.addProcess(process.pid);
-    process.on('message', this.onWorkerMessage);
-    process.on('disconnect', this.onWorkerDisconnect);
-    const stats = 0, state = WorkerState.healthy;
-    return { process, stats, state };
+    return new Promise<IWorker>((resolve) => {
+      process.once('message', (message: IMessage) => {
+        if (!message || message.type !== MessageType.ready) return;
+        process.on('message', this.onWorkerMessage);
+        process.on('disconnect', this.onWorkerDisconnect);
+        const stats = 0, state = WorkerState.healthy;
+        resolve({ process, stats, state });
+      });
+    });
   }
 
   private get healthyWorkers() {

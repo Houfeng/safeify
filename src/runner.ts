@@ -86,3 +86,5 @@ process.on('message', (message: IMessage) => {
       return receiveCallRet(message.call);
   }
 });
+
+process.send({ type: MessageType.ready });
