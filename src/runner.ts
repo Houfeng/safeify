@@ -87,4 +87,6 @@ process.on('message', (message: IMessage) => {
   }
 });
 
+//发送 ready 消息
 process.send({ type: MessageType.ready });
+setTimeout(() => process.send({ type: MessageType.ready }), 1000);

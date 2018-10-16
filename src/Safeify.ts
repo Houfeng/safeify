@@ -138,15 +138,15 @@ export class Safeify {
 
   private async createWorker(): Promise<IWorker> {
     const { unrestricted } = this.options;
-    const process = childProcess.fork(runnerFile);
-    if (!unrestricted) await this.cgroups.addProcess(process.pid);
+    const workerProcess = childProcess.fork(runnerFile);
+    if (!unrestricted) await this.cgroups.addProcess(workerProcess.pid);
     return new Promise<IWorker>((resolve) => {
-      process.once('message', (message: IMessage) => {
+      workerProcess.once('message', (message: IMessage) => {
         if (!message || message.type !== MessageType.ready) return;
-        process.on('message', this.onWorkerMessage);
-        process.on('disconnect', this.onWorkerDisconnect);
+        workerProcess.on('message', this.onWorkerMessage);
+        workerProcess.on('disconnect', this.onWorkerDisconnect);
         const stats = 0, state = WorkerState.healthy;
-        resolve({ process, stats, state });
+        resolve({ process: workerProcess, stats, state });
       });
     });
   }
