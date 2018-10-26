@@ -13,16 +13,16 @@ export declare class Safeify {
     readonly workerTotal: number;
     readonly pendingTotal: number;
     readonly runningTotal: number;
-    private onWokerCall(message);
+    private onWokerCall;
     private onWorkerMessage;
-    private onWorkerDone(message);
+    private onWorkerDone;
     private onWorkerDisconnect;
-    private createControlGroup();
-    private createWorker();
+    private createControlGroup;
+    private createWorker;
     private readonly healthyWorkers;
-    private createWorkers();
-    private execute();
-    private toCode(code);
+    private createWorkers;
+    private execute;
+    private toCode;
     preset(code: string | Function): void;
     run(code: string | Function, sandbox?: any): Promise<any>;
 }

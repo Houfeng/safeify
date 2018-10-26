@@ -3,5 +3,5 @@ export declare enum MessageType {
     done = "done",
     call = "call",
     ret = "ret",
-    ready = "ready",
+    ready = "ready"
 }

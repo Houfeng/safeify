@@ -19,6 +19,9 @@ const cpuCount = os.cpus().length;
 const quantity = cpuCount > 1 ? cpuCount : cpuCount * 2;
 const runnerFile = require.resolve('./runner');
 const sandbox = Object.create(null);
+const childExecArgv = (process.execArgv || []).map(flag => (
+  flag.includes('--inspect') ? '--inspect=0' : flag
+));
 
 export class Safeify {
 
@@ -138,7 +141,9 @@ export class Safeify {
 
   private async createWorker(): Promise<IWorker> {
     const { unrestricted } = this.options;
-    const workerProcess = childProcess.fork(runnerFile);
+    const workerProcess = childProcess.fork(runnerFile, [], {
+      execArgv: childExecArgv
+    });
     if (!unrestricted) await this.cgroups.addProcess(workerProcess.pid);
     return new Promise<IWorker>((resolve) => {
       workerProcess.once('message', (message: IMessage) => {
