@@ -1,3 +1,4 @@
 export enum WorkerState {
-  healthy = 'healthy', unhealthy = 'unhealthy'
+  healthy = "healthy",
+  unhealthy = "unhealthy"
 }

@@ -1,5 +1,6 @@
-import { MessageType } from './MessageType';
+import { MessageType } from "./MessageType";
 
 export interface IMessage {
-  type: MessageType, [key: string]: any
+  type: MessageType;
+  [key: string]: any;
 }

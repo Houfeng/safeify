@@ -1,6 +1,8 @@
-import { ChildProcess } from 'child_process';
-import { WorkerState } from './WorkerState';
+import { ChildProcess } from "child_process";
+import { WorkerState } from "./WorkerState";
 
 export interface IWorker {
-  process: ChildProcess, stats: number, state: WorkerState
+  process: ChildProcess;
+  stats: number;
+  state: WorkerState;
 }

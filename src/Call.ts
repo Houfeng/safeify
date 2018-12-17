@@ -1,10 +1,8 @@
-import { ICallOptions } from './ICallOptions';
+import { ICallOptions } from "./ICallOptions";
 
-const log = require('debug')('Call');
-const { newGuid } = require('ntils');
+const { newGuid } = require("ntils");
 
 export class Call {
-
   public id: string;
   public name: string;
   public args: string;
@@ -24,8 +22,8 @@ export class Call {
   }
 
   toJSON() {
+    // tslint:disable-next-line
     const { id, name, args, result, error } = this;
     return { id, name, args, result, error };
   }
-
 }

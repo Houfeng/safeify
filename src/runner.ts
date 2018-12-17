@@ -1,13 +1,13 @@
-import { VM } from 'vm2';
-import { MessageType } from './MessageType';
-import { IMessage } from './IMessage';
-import { Script } from './Script';
-import { isCallProxy, getCallName } from './Proxy';
-import { Call } from './Call';
+import { VM } from "vm2";
+import { MessageType } from "./MessageType";
+import { IMessage } from "./IMessage";
+import { Script } from "./Script";
+import { isCallProxy, getCallName } from "./Proxy";
+import { Call } from "./Call";
 
-const { each, isObject, isArray, isDate } = require('ntils');
+const { each, isObject, isArray, isDate } = require("ntils");
 
-const pendingCalls: Array<Call> = [];
+const pendingCalls: Call[] = [];
 
 function wrapCode(code: string) {
   return `(async function(Buffer){${code}})(undefined)`;
@@ -24,7 +24,7 @@ function sendResult(message: any) {
 function createProxyFunc(scriptId: string, value: string) {
   const type = MessageType.call;
   const pid = process.pid;
-  return (...args: Array<any>) => {
+  return (...args: any[]) => {
     const name = getCallName(value);
     const call = new Call({ name, args });
     pendingCalls.push(call);
@@ -51,7 +51,7 @@ function convertParams(scriptId: string, params: any) {
   const result = Object.create(null);
   each(params, (name: string, value: any) => {
     if (isCallProxy(value)) {
-      result[name] = createProxyFunc(scriptId, value)
+      result[name] = createProxyFunc(scriptId, value);
     } else if (isObject(value) && !isArray(value) && !isDate(value)) {
       result[name] = convertParams(scriptId, value);
     } else {
@@ -66,7 +66,7 @@ async function run(script: Script) {
   const sandbox = convertParams(script.id, params);
   const vm = new VM({ sandbox, timeout });
   const timeoutTimer = setTimeout(() => {
-    script.error = 'Script timeout';
+    script.error = "Script timeout";
     sendResult({ script, healthy: false });
   }, asyncTimeout);
   try {
@@ -78,7 +78,7 @@ async function run(script: Script) {
   sendResult({ script, healthy: true });
 }
 
-process.on('message', (message: IMessage) => {
+process.on("message", (message: IMessage) => {
   switch (message.type) {
     case MessageType.run:
       return run(message.script);
@@ -87,6 +87,5 @@ process.on('message', (message: IMessage) => {
   }
 });
 
-//发送 ready 消息
+// 发送 ready 消息
 process.send({ type: MessageType.ready });
-setTimeout(() => process.send({ type: MessageType.ready }), 1000);
