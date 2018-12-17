@@ -26,7 +26,8 @@ describe('Safeify', function () {
   it('run: success', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     const result = await safeVm.run(
@@ -39,7 +40,8 @@ describe('Safeify', function () {
   it('run: error', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     let error;
@@ -56,7 +58,8 @@ describe('Safeify', function () {
   it('run: call error', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     let error;
@@ -72,7 +75,8 @@ describe('Safeify', function () {
   it('run: sync timeout', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     let error;
@@ -88,7 +92,8 @@ describe('Safeify', function () {
   it('run: async timeout', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 500
+      asyncTimeout: 500,
+      unrestricted: true
     });
     await safeVm.init();
     let error;
@@ -105,7 +110,8 @@ describe('Safeify', function () {
   it('run: ignore', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     let error;
@@ -121,7 +127,8 @@ describe('Safeify', function () {
   it('run: blank', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     const result = await safeVm.run('');
@@ -132,7 +139,8 @@ describe('Safeify', function () {
   it('run: function', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     const result = await safeVm.run(function (system: any) {
@@ -145,7 +153,8 @@ describe('Safeify', function () {
   it('run: preset', async function () {
     const safeVm = new Safeify({
       timeout: 500,
-      asyncTimeout: 5000
+      asyncTimeout: 5000,
+      unrestricted: true
     });
     await safeVm.init();
     safeVm.preset(function (system: any) {
@@ -160,6 +169,7 @@ describe('Safeify', function () {
     const safeVm = new Safeify({
       timeout: 500,
       asyncTimeout: 5000,
+      unrestricted: true,
       quantity: 1,
     });
     await safeVm.init();
