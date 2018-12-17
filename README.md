@@ -1,7 +1,5 @@
 # Safeify
 
-> 让你的 Node 应用安全的隔离的执行非信任的用户自定义代码。
-
 <div align="center">
 
 [![npm](https://img.shields.io/npm/l/safeify.svg)](LICENSE.md)
@@ -11,6 +9,10 @@
 [![npm](https://img.shields.io/npm/dt/safeify.svg)](https://www.npmjs.com/package/safeify)
 
 </div>
+
+# 说明
+
+Safeify 可让 Node 应用安全的隔离执行非信任的用户自定义代码，[了解详细](./doc.md)
 
 # 安装
 
@@ -24,12 +26,14 @@ npm install safeify -S
 import { Safeify } from "safeify";
 
 (async ()=>{
+
+  // 创建 safeify 实例
   const safeVm = new Safeify({
     timeout: 3000,
     asyncTimeout: 60000
   });
-  await safeVm.init();
 
+  // 定义 context
   const context = {
     a: 1,
     b: 2,
@@ -40,8 +44,12 @@ import { Safeify } from "safeify";
     }
   };
 
+  // 执行动态代码
   const result= await safeVm.run(`return system.add(1,2)`, context));
   console.log('result', result);
+
+  //释放资源
   safeVm.distory();
+  
 })();
 ```

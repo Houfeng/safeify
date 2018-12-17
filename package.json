@@ -25,6 +25,7 @@
     "@types/js-yaml": "^3.10.1",
     "@types/node": "^9.4.5",
     "coveralls": "^3.0.0",
+    "dawn": "^1.8.0",
     "dn-middleware-clean": "^1.0.2",
     "dn-middleware-copy": "^0.2.7",
     "dn-middleware-shell": "^1.1.0",
