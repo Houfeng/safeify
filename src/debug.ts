@@ -3,7 +3,6 @@ import { Safeify } from "./Safeify";
 console.time("debug");
 
 (async () => {
-  
   const safeVm = new Safeify({
     timeout: 3000,
     asyncTimeout: 60000
