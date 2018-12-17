@@ -1,7 +1,5 @@
 # Safeify
 
-> 让你的 Node 应用安全的隔离的执行非信任的用户自定义代码。
-
 <div align="center">
 
 [![npm](https://img.shields.io/npm/l/safeify.svg)](LICENSE.md)
@@ -11,6 +9,10 @@
 [![npm](https://img.shields.io/npm/dt/safeify.svg)](https://www.npmjs.com/package/safeify)
 
 </div>
+
+# 说明
+
+Safeify 可让 Node 应用安全的隔离执行非信任的用户自定义代码，[了解详细](./doc.md)
 
 # 安装
 
