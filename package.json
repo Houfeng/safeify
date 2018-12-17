@@ -27,7 +27,7 @@
     "dn-middleware-copy": "^0.2.7",
     "dn-middleware-shell": "^1.1.0",
     "dn-middleware-tslint": "^1.1.2",
-    "dn-middleware-unit": "^0.1.22",
+    "dn-middleware-unit": "^0.2.0",
     "ts-node": "^4.1.0",
     "typescript": "^3.2.2"
   }

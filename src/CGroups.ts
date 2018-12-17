@@ -2,7 +2,6 @@ import * as os from "os";
 import * as fs from "mz/fs";
 
 const mkdirp = require("mkdirp");
-const platform = os.platform();
 
 const mkdir = async (dir: string) => {
   return new Promise((resolve, reject) => {
@@ -13,17 +12,24 @@ const mkdir = async (dir: string) => {
   });
 };
 
-export class CGroups {
-  private root = "/sys/fs/cgroup";
-  private name = "";
-  private resources: string[] = [];
+export interface IResources {
+  [name: string]: any;
+}
 
-  constructor(name: string) {
+export class CGroups {
+  public root: string;
+  public name = "";
+  public resources: string[] = [];
+  public platform: string;
+
+  constructor(name: string, root = "/sys/fs/cgroup", platform = os.platform()) {
+    this.root = root;
     this.name = name;
+    this.platform = platform;
   }
 
-  public set(resources: any) {
-    if (platform !== "linux") return;
+  public set(resources: IResources) {
+    if (this.platform !== "linux") return;
     const resList = Object.keys(resources);
     return Promise.all(
       resList.map(async resName => {
@@ -46,7 +52,7 @@ export class CGroups {
   }
 
   public addProcess(pid: number) {
-    if (platform !== "linux") return;
+    if (this.platform !== "linux") return;
     return Promise.all(
       this.resources.map(resName => {
         const filename = `${this.root}/${resName}/${this.name}/tasks`;

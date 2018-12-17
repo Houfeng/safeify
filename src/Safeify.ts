@@ -11,23 +11,20 @@ import { WorkerState } from "./WorkerState";
 const { isFunction, getByPath } = require("ntils");
 const log = require("debug")("safeify");
 
-const timeout = 1000;
-const asyncTimeout = 60000;
-const cpuQuota = 0.5;
-const memoryQuota = 500;
-const cpuCount = os.cpus().length;
-const quantity = cpuCount > 1 ? cpuCount : cpuCount * 2;
+const defaultSandbox = Object.create(null);
+const defaultOptions = {
+  timeout: 1000,
+  asyncTimeout: 60000,
+  quantity: os.cpus().length,
+  sandbox: defaultSandbox,
+  cpuQuota: 0.5,
+  memoryQuota: 500
+};
 const runnerFile = require.resolve("./runner");
-const sandbox = Object.create(null);
+/* istanbul ignore next */
 const childExecArgv = (process.execArgv || []).map(flag =>
   flag.includes("--inspect") ? "--inspect=0" : flag
 );
-
-// for unit
-if (runnerFile.endsWith(".ts")) {
-  childExecArgv.unshift("ts-node/register");
-  childExecArgv.unshift("-r");
-}
 
 export class Safeify {
   private options: ISafeifyOptions = {};
@@ -39,24 +36,16 @@ export class Safeify {
   private presets: string[] = [];
 
   constructor(opts: ISafeifyOptions = {}) {
-    Object.assign(
-      this.options,
-      {
-        timeout,
-        asyncTimeout,
-        quantity,
-        sandbox,
-        cpuQuota,
-        memoryQuota
-      },
-      opts
-    );
+    Object.assign(this.options, defaultOptions, opts);
+    if (this.options.quantity < 2) this.options.quantity = 2;
   }
 
   public async init() {
+    /* istanbul ignore if */
     if (this.inited) return;
     this.inited = true;
     const { unrestricted } = this.options;
+    /* istanbul ignore if */
     if (!unrestricted) await this.createControlGroup();
     await this.createWorkers();
   }
@@ -84,18 +73,21 @@ export class Safeify {
 
   private async onWokerCall(message: IMessage) {
     const { call, pid, scriptId } = message;
+    /* istanbul ignore if */
     if (!call) return;
     const script = this.runningScripts.find(item => item.id === scriptId);
+    /* istanbul ignore if */
     if (!script) return;
     try {
       const breadcrumb = call.name.split(".");
       const name = breadcrumb.pop();
-      const context = getByPath(script.sandbox, breadcrumb) || sandbox;
+      const context = getByPath(script.sandbox, breadcrumb) || defaultSandbox;
       call.result = await context[name](...call.args);
     } catch (err) {
       call.error = err.message;
     }
     const worker = this.workers.find(item => item.process.pid === pid);
+    /* istanbul ignore if */
     if (!worker) return;
     const type = MessageType.ret;
     worker.process.send({ type, call });
@@ -126,8 +118,10 @@ export class Safeify {
     const runningIndex = this.runningScripts.findIndex(
       item => item.id === script.id
     );
+    /* istanbul ignore if */
     if (runningIndex < 0) return;
     const runningScript = this.runningScripts.splice(runningIndex, 1)[0];
+    /* istanbul ignore if */
     if (!runningScript) return;
     if (script.error) {
       runningScript.reject(new Error(script.error), pid);
@@ -138,6 +132,7 @@ export class Safeify {
     }
   }
 
+  /* istanbul ignore next */
   private onWorkerDisconnect = async () => {
     log("onWorkerDisconnect", "pendingScripts", this.pendingScripts.length);
     this.workers = this.workers.filter(item => item.process.connected);
@@ -162,6 +157,7 @@ export class Safeify {
     if (!unrestricted) await this.cgroups.addProcess(workerProcess.pid);
     return new Promise<IWorker>(resolve => {
       workerProcess.once("message", (message: IMessage) => {
+        /* istanbul ignore if */
         if (!message || message.type !== MessageType.ready) return;
         workerProcess.on("message", this.onWorkerMessage);
         workerProcess.on("disconnect", this.onWorkerDisconnect);
@@ -195,9 +191,11 @@ export class Safeify {
 
   private execute() {
     const worker = this.healthyWorkers.sort((a, b) => a.stats - b.stats)[0];
+    /* istanbul ignore if */
     if (!worker) return;
     log("execute pid", worker.process.pid);
     const script = this.pendingScripts.shift();
+    /* istanbul ignore if */
     if (!script) return;
     worker.stats++;
     this.runningScripts.push(script);

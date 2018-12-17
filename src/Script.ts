@@ -43,7 +43,6 @@ export class Script {
   constructor(options: IScriptOptions) {
     Object.assign(this, options);
     this.id = newGuid();
-    if (!this.code) this.code = "";
     if (!this.sandbox) this.sandbox = {};
     this.params = convertParams(this.sandbox);
     this.defer = new Promise((resolve, reject) => {

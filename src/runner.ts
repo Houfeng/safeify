@@ -66,7 +66,7 @@ async function run(script: Script) {
   const sandbox = convertParams(script.id, params);
   const vm = new VM({ sandbox, timeout });
   const timeoutTimer = setTimeout(() => {
-    script.error = "Script timeout";
+    script.error = "Script execution timed out.";
     sendResult({ script, healthy: false });
   }, asyncTimeout);
   try {
