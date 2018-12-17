@@ -1,55 +1,63 @@
-import * as os from 'os';
-import * as childProcess from 'child_process';
-import { ISafeifyOptions } from './ISafeifyOptions';
-import { CGroups } from './CGroups';
-import { IWorker } from './IWorker';
-import { MessageType } from './MessageType';
-import { IMessage } from './IMessage';
-import { Script } from './Script';
+import * as os from "os";
+import * as childProcess from "child_process";
+import { ISafeifyOptions } from "./ISafeifyOptions";
+import { CGroups } from "./CGroups";
+import { IWorker } from "./IWorker";
+import { MessageType } from "./MessageType";
+import { IMessage } from "./IMessage";
+import { Script } from "./Script";
+import { WorkerState } from "./WorkerState";
 
-const { isFunction, getByPath } = require('ntils');
-const log = require('debug')('safeify');
+const { isFunction, getByPath } = require("ntils");
+const log = require("debug")("safeify");
 
-const timeout = 500;
-const asyncTimeout = 3000;
-const cpuQuota = 0.5;
-const memoryQuota = 500;
-const quantity = os.cpus().length * 2;
-const runnerFile = require.resolve('./runner');
-const sandbox = Object.create(null);
+const defaultSandbox = Object.create(null);
+const defaultOptions = {
+  timeout: 1000,
+  asyncTimeout: 60000,
+  quantity: os.cpus().length,
+  sandbox: defaultSandbox,
+  cpuQuota: 0.5,
+  memoryQuota: 500
+};
+const runnerFile = require.resolve("./runner");
+/* istanbul ignore next */
+const childExecArgv = (process.execArgv || []).map(flag =>
+  flag.includes("--inspect") ? "--inspect=0" : flag
+);
 
 export class Safeify {
-
   private options: ISafeifyOptions = {};
-  private workers: Array<IWorker> = [];
-  private pendingScripts: Array<Script> = [];
-  private runningScripts: Array<Script> = [];
+  private workers: IWorker[] = [];
+  private pendingScripts: Script[] = [];
+  private runningScripts: Script[] = [];
   private cgroups: CGroups = null;
-  private inited: boolean = false;
-  private presets: Array<string> = [];
+  private inited = false;
+  private presets: string[] = [];
 
   constructor(opts: ISafeifyOptions = {}) {
-    Object.assign(this.options, {
-      timeout, asyncTimeout, quantity, sandbox, cpuQuota, memoryQuota
-    }, opts);
+    Object.assign(this.options, defaultOptions, opts);
+    if (this.options.quantity < 2) this.options.quantity = 2;
   }
 
   public async init() {
+    /* istanbul ignore if */
     if (this.inited) return;
     this.inited = true;
     const { unrestricted } = this.options;
+    /* istanbul ignore if */
     if (!unrestricted) await this.createControlGroup();
     await this.createWorkers();
   }
 
   public distory = () => {
     this.workers.forEach(item => {
-      item.process.removeAllListeners('message');
-      item.process.removeAllListeners('disconnect');
-      item.process.kill();
+      item.process.removeAllListeners("message");
+      item.process.removeAllListeners("disconnect");
+      if (!item.process.killed) item.process.kill();
     });
     this.workers = [];
-  }
+  };
 
   get workerTotal() {
     return this.workers.length;
@@ -65,21 +73,24 @@ export class Safeify {
 
   private async onWokerCall(message: IMessage) {
     const { call, pid, scriptId } = message;
+    /* istanbul ignore if */
     if (!call) return;
-    const script = this.runningScripts.find(item => item.id == scriptId);
+    const script = this.runningScripts.find(item => item.id === scriptId);
+    /* istanbul ignore if */
     if (!script) return;
     try {
-      const breadcrumb = call.name.split('.');
+      const breadcrumb = call.name.split(".");
       const name = breadcrumb.pop();
-      const context = getByPath(script.sandbox, breadcrumb) || sandbox;
+      const context = getByPath(script.sandbox, breadcrumb) || defaultSandbox;
       call.result = await context[name](...call.args);
     } catch (err) {
       call.error = err.message;
     }
-    const worker = this.workers.find(item => item.process.pid == pid);
+    const worker = this.workers.find(item => item.process.pid === pid);
+    /* istanbul ignore if */
     if (!worker) return;
     const type = MessageType.ret;
-    worker.process.send({ type, call })
+    worker.process.send({ type, call });
   }
 
   private onWorkerMessage = (message: IMessage) => {
@@ -89,47 +100,48 @@ export class Safeify {
       case MessageType.call:
         return this.onWokerCall(message);
     }
-  }
+  };
 
   private onWorkerDone(message: IMessage) {
-    const { pid, script, willExit } = message;
-    if (!willExit) {
-      //处理释放的 worker，并尝试处理新脚本
-      const worker = this.workers.find(item => item.process.pid == pid);
-      if (worker) {
-        log('onWorkerDone free pid', worker.process.pid);
-        worker.stats--;
-        this.execute(worker);
-      }
+    const { pid, script, healthy } = message;
+    const worker = this.workers.find(item => item.process.pid === pid);
+    if (worker && healthy) worker.stats--;
+    if (worker && !healthy) {
+      worker.state = WorkerState.unhealthy;
+      setTimeout(() => {
+        if (worker.process.connected) worker.process.disconnect();
+        if (!worker.process.killed) worker.process.kill();
+      }, this.options.asyncTimeout + 1000);
     }
-    //处理执行完的脚本
-    const runningIndex = this.runningScripts
-      .findIndex(item => item.id === script.id);
-    if (runningIndex > -1) {
-      const runningScript = this.runningScripts.splice(runningIndex, 1)[0];
-      if (runningScript) {
-        if (script.error) {
-          runningScript.reject(new Error(script.error), pid);
-          log('onWorkerDone error', script.id, script.error);
-        } else {
-          runningScript.resolve(script.result, pid);
-          log('onWorkerDone result', script.id, script.result);
-        }
-      }
+    if (this.pendingScripts.length > 0) this.execute();
+    // 处理执行完的脚本
+    const runningIndex = this.runningScripts.findIndex(
+      item => item.id === script.id
+    );
+    /* istanbul ignore if */
+    if (runningIndex < 0) return;
+    const runningScript = this.runningScripts.splice(runningIndex, 1)[0];
+    /* istanbul ignore if */
+    if (!runningScript) return;
+    if (script.error) {
+      runningScript.reject(new Error(script.error), pid);
+      log("onWorkerDone error", script.id, script.error);
+    } else {
+      runningScript.resolve(script.result, pid);
+      log("onWorkerDone result", script.id, script.result);
     }
   }
 
+  /* istanbul ignore next */
   private onWorkerDisconnect = async () => {
-    log('onWorkerDisconnect', 'pendingScripts', this.pendingScripts.length);
+    log("onWorkerDisconnect", "pendingScripts", this.pendingScripts.length);
     this.workers = this.workers.filter(item => item.process.connected);
-    const num = this.options.quantity - this.workers.length;
-    const newWorkers = await this.createWorkers(num);
-    log('onWorkerDisconnect', 'newWorkers', newWorkers.length);
-    newWorkers.forEach(item => this.execute(item));
-  }
+    await this.createWorkers();
+    if (this.pendingScripts.length > 0) this.execute();
+  };
 
   private createControlGroup() {
-    this.cgroups = new CGroups('safeify');
+    this.cgroups = new CGroups("safeify");
     const { cpuQuota, memoryQuota } = this.options;
     return this.cgroups.set({
       cpu: { cfs_quota_us: 100000 * cpuQuota },
@@ -137,50 +149,65 @@ export class Safeify {
     });
   }
 
-  private async createWorker() {
+  private async createWorker(): Promise<IWorker> {
     const { unrestricted } = this.options;
-    const process = childProcess.fork(runnerFile);
-    if (!unrestricted) await this.cgroups.addProcess(process.pid);
-    process.on('message', this.onWorkerMessage);
-    process.on('disconnect', this.onWorkerDisconnect);
-    const stats = 0;
-    return { process, stats };
-  }
-
-  private async createWorkers(num?: number) {
-    if (!num) num = this.options.quantity;
-    const newWorkers = [];
-    for (let i = 0; i < num; i++) {
-      newWorkers.push((async () => {
-        const worker = await this.createWorker();
-        this.workers.push(worker);
-        return worker;
-      })());
-    }
-    return Promise.all(newWorkers);
-  }
-
-  private execute(freeWorker?: IWorker) {
-    const worker = freeWorker ? freeWorker :
-      this.workers.sort((a, b) => a.stats - b.stats)[0];
-    if (!worker) return;
-    log('execute pid', worker.process.pid);
-    const script = this.pendingScripts.shift();
-    if (!script) return;
-    worker.stats++;
-    this.runningScripts.push(script);
-    log('execute code', script.code);
-    worker.process.send({
-      type: MessageType.run,
-      script: script
+    const workerProcess = childProcess.fork(runnerFile, [], {
+      execArgv: childExecArgv
+    });
+    if (!unrestricted) await this.cgroups.addProcess(workerProcess.pid);
+    return new Promise<IWorker>(resolve => {
+      workerProcess.once("message", (message: IMessage) => {
+        /* istanbul ignore if */
+        if (!message || message.type !== MessageType.ready) return;
+        workerProcess.on("message", this.onWorkerMessage);
+        workerProcess.on("disconnect", this.onWorkerDisconnect);
+        const stats = 0,
+          state = WorkerState.healthy;
+        resolve({ process: workerProcess, stats, state });
+      });
     });
   }
 
+  private get healthyWorkers() {
+    return this.workers.filter(
+      worker => worker.process.connected && worker.state === WorkerState.healthy
+    );
+  }
+
+  private async createWorkers() {
+    const num = this.options.quantity - this.healthyWorkers.length;
+    const workers = [];
+    for (let i = 0; i < num; i++) {
+      workers.push(
+        (async () => {
+          const worker = await this.createWorker();
+          this.workers.push(worker);
+          return worker;
+        })()
+      );
+    }
+    return Promise.all(workers);
+  }
+
+  private execute() {
+    const worker = this.healthyWorkers.sort((a, b) => a.stats - b.stats)[0];
+    /* istanbul ignore if */
+    if (!worker) return;
+    log("execute pid", worker.process.pid);
+    const script = this.pendingScripts.shift();
+    /* istanbul ignore if */
+    if (!script) return;
+    worker.stats++;
+    this.runningScripts.push(script);
+    log("execute code", script.code);
+    worker.process.send({ type: MessageType.run, script });
+  }
+
   private toCode(code: string | Function): string {
-    if (!code) return ';';
+    if (!code) return ";";
     if (isFunction(code)) {
       const result = /\{([\s\S]*)\}/.exec(code.toString());
-      return result[1] || '';
+      return result[1] || "";
     } else {
       return code.toString();
     }
@@ -192,13 +219,12 @@ export class Safeify {
 
   public async run(code: string | Function, sandbox?: any) {
     await this.init();
-    code = [...this.presets, this.toCode(code), os.EOL].join(';');
-    log('run', code);
+    code = [...this.presets, this.toCode(code), os.EOL].join(";");
+    log("run", code);
     const { timeout, asyncTimeout } = this.options;
     const script = new Script({ code, timeout, asyncTimeout, sandbox });
     this.pendingScripts.push(script);
     this.execute();
     return script.defer;
   }
-
 }

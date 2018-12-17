@@ -1,11 +1,11 @@
-const { isString } = require('ntils');
-const callSymbol = 'func://942ccb3b-a367-a650-9981-02e44a98a5e6/';
+const { isString } = require("ntils");
+const callSymbol = "func://942ccb3b-a367-a650-9981-02e44a98a5e6/";
 
-export function createCallProxy(name: string | Array<string>) {
+export function createCallProxy(name: string | string[]) {
   if (isString(name)) {
     return callSymbol + name;
   } else {
-    return callSymbol + (name as Array<string>).join('.');
+    return callSymbol + (name as string[]).join(".");
   }
 }
 
@@ -15,5 +15,5 @@ export function isCallProxy(value: any) {
 }
 
 export function getCallName(value: string) {
-  return value.replace(callSymbol, '');
+  return value.replace(callSymbol, "");
 }

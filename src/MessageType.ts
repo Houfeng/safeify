@@ -1,3 +1,7 @@
 export enum MessageType {
-  run = 'run', done = 'done', call = 'call', ret = 'ret'
+  run = "run",
+  done = "done",
+  call = "call",
+  ret = "ret",
+  ready = "ready"
 }
