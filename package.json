@@ -1,14 +1,15 @@
 {
   "name": "safeify",
-  "version": "2.0.8",
+  "version": "3.0.3",
   "description": "",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "dn test",
+    "cover": "nyc report --reporter=text-lcov | coveralls"
   },
   "author": "",
-  "license": "ISC",
+  "license": "LGPL",
   "dependencies": {
     "@types/mkdirp": "^0.5.2",
     "@types/mz": "^0.0.32",
@@ -23,7 +24,14 @@
     "@types/debug": "^0.0.30",
     "@types/js-yaml": "^3.10.1",
     "@types/node": "^9.4.5",
+    "coveralls": "^3.0.0",
+    "dawn": "^1.8.0",
+    "dn-middleware-clean": "^1.0.2",
+    "dn-middleware-copy": "^0.2.7",
+    "dn-middleware-shell": "^1.1.0",
+    "dn-middleware-tslint": "^1.1.2",
+    "dn-middleware-unit": "^0.2.0",
     "ts-node": "^4.1.0",
-    "typescript": "^2.7.1"
+    "typescript": "^3.2.2"
   }
 }

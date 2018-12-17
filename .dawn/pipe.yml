@@ -7,13 +7,19 @@ dev:
       - DEBUG=none ts-node ./src/debug.ts
 
 build:
+  - name: clean 
+    target: ./lib/
   - name: shell
     script:
       - tsc --locale zh-cn -d --esModuleInterop
 
 test:
-  - name: lint
+  - name: clean 
+    target: ./lib/
+  - name: tslint
   - name: unit
+    env: typescript
+    files: ./test/**/*.ts
 
 publish:
   - name: shell

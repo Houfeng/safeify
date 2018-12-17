@@ -1,13 +1,13 @@
-import { VM } from 'vm2';
-import { MessageType } from './MessageType';
-import { IMessage } from './IMessage';
-import { Script } from './Script';
-import { isCallProxy, getCallName } from './Proxy';
-import { Call } from './Call';
+import { VM } from "vm2";
+import { MessageType } from "./MessageType";
+import { IMessage } from "./IMessage";
+import { Script } from "./Script";
+import { isCallProxy, getCallName } from "./Proxy";
+import { Call } from "./Call";
 
-const { each, isObject, isArray, isDate } = require('ntils');
+const { each, isObject, isArray, isDate } = require("ntils");
 
-const pendingCalls: Array<Call> = [];
+const pendingCalls: Call[] = [];
 
 function wrapCode(code: string) {
   return `(async function(Buffer){${code}})(undefined)`;
@@ -24,7 +24,7 @@ function sendResult(message: any) {
 function createProxyFunc(scriptId: string, value: string) {
   const type = MessageType.call;
   const pid = process.pid;
-  return (...args: Array<any>) => {
+  return (...args: any[]) => {
     const name = getCallName(value);
     const call = new Call({ name, args });
     pendingCalls.push(call);
@@ -51,7 +51,7 @@ function convertParams(scriptId: string, params: any) {
   const result = Object.create(null);
   each(params, (name: string, value: any) => {
     if (isCallProxy(value)) {
-      result[name] = createProxyFunc(scriptId, value)
+      result[name] = createProxyFunc(scriptId, value);
     } else if (isObject(value) && !isArray(value) && !isDate(value)) {
       result[name] = convertParams(scriptId, value);
     } else {
@@ -65,24 +65,20 @@ async function run(script: Script) {
   const { timeout, asyncTimeout, code, params } = script;
   const sandbox = convertParams(script.id, params);
   const vm = new VM({ sandbox, timeout });
-  let done = false;
-  setTimeout(() => {
-    if (done) return;
-    script.error = 'Script timeout';
-    sendResult({ script, willExit: true });
-    process.disconnect();
-    process.exit(0);
+  const timeoutTimer = setTimeout(() => {
+    script.error = "Script execution timed out.";
+    sendResult({ script, healthy: false });
   }, asyncTimeout);
   try {
     script.result = await vm.run(wrapCode(code));
   } catch (err) {
     script.error = err.message;
   }
-  done = true;
-  sendResult({ script });
+  clearTimeout(timeoutTimer);
+  sendResult({ script, healthy: true });
 }
 
-process.on('message', (message: IMessage) => {
+process.on("message", (message: IMessage) => {
   switch (message.type) {
     case MessageType.run:
       return run(message.script);
@@ -90,3 +86,6 @@ process.on('message', (message: IMessage) => {
       return receiveCallRet(message.call);
   }
 });
+
+// 发送 ready 消息
+process.send({ type: MessageType.ready });

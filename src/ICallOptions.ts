@@ -1,4 +1,4 @@
 export interface ICallOptions {
-  name: string,
-  args: any
+  name: string;
+  args: any;
 }

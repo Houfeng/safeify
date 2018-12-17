@@ -7,7 +7,12 @@
     "target": "es2017",
     "experimentalDecorators": true,
     "removeComments": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "lib": [
+      "esnext",
+      "dom"
+    ]
   },
   "include": [
     "./src/**/*.ts"
