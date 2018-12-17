@@ -48,7 +48,7 @@ import { Safeify } from "safeify";
   const result= await safeVm.run(`return system.add(1,2)`, context));
   console.log('result', result);
 
-  //释放资源
+  // 释放资源
   safeVm.distory();
   
 })();
