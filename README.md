@@ -12,7 +12,7 @@
 
 # 说明
 
-Safeify 可让 Node 应用安全的隔离执行非信任的用户自定义代码，[了解详细](./blob/master/DOC.md)
+Safeify 可让 Node 应用安全的隔离执行非信任的用户自定义代码，[了解详细](//github.com/Houfeng/safeify/blob/master/DOC.md)
 
 # 安装
 
