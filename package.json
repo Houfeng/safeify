@@ -9,7 +9,7 @@
     "cover": "nyc report --reporter=text-lcov | coveralls"
   },
   "author": "",
-  "license": "LGPL",
+  "license": "Apache License 2.0",
   "dependencies": {
     "@types/mkdirp": "^0.5.2",
     "@types/mz": "^0.0.32",
