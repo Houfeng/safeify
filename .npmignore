@@ -3,3 +3,7 @@
 node_modules/
 .nyc_output/
 coverage/
+test/
+.dawn/
+.vscode/
+src/

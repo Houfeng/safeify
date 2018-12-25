@@ -62,20 +62,15 @@ function convertParams(scriptId: string, params: any) {
 }
 
 async function run(script: Script) {
-  const { timeout, asyncTimeout, code, params } = script;
+  const { timeout, code, params } = script;
   const sandbox = convertParams(script.id, params);
   const vm = new VM({ sandbox, timeout });
-  const timeoutTimer = setTimeout(() => {
-    script.error = "Script execution timed out.";
-    sendResult({ script, healthy: false });
-  }, asyncTimeout);
   try {
     script.result = await vm.run(wrapCode(code));
   } catch (err) {
     script.error = err.message;
   }
-  clearTimeout(timeoutTimer);
-  sendResult({ script, healthy: true });
+  sendResult({ script });
 }
 
 process.on("message", (message: IMessage) => {

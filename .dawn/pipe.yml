@@ -16,6 +16,8 @@ build:
 test:
   - name: clean 
     target: ./lib/
+  - name: lint
+    target: ./src
   - name: tslint
   - name: unit
     env: typescript
