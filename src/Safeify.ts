@@ -25,6 +25,11 @@ const runnerFile = require.resolve("./runner");
 const childExecArgv = (process.execArgv || []).map(flag =>
   flag.includes("--inspect") ? "--inspect=0" : flag
 );
+const instances: Safeify[] = [];
+
+process.once("exit", () => {
+  instances.forEach(instance => instance.distory());
+});
 
 export class Safeify {
   private options: ISafeifyOptions = {};
@@ -35,6 +40,7 @@ export class Safeify {
   private presets: string[] = [];
 
   constructor(opts: ISafeifyOptions = {}) {
+    instances.push(this);
     Object.assign(this.options, defaultOptions, opts);
     if (this.options.quantity < 2) this.options.quantity = 2;
   }
@@ -50,6 +56,8 @@ export class Safeify {
   }
 
   public distory = () => {
+    const index = instances.indexOf(this);
+    if (index > -1) instances.splice(index, 1);
     this.workers.forEach(worker => this.distoryWorker(worker));
     this.workers = [];
   };
@@ -60,7 +68,7 @@ export class Safeify {
     worker.process.removeAllListeners("message");
     worker.process.removeAllListeners("disconnect");
     if (worker.process.connected) worker.process.disconnect();
-    if (!worker.process.killed) worker.process.kill();
+    if (!worker.process.killed) worker.process.kill("SIGKILL");
   }
 
   get workerTotal() {

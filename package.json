@@ -34,6 +34,7 @@
     "dn-middleware-unit": "^0.2.0",
     "eslint-config-dawn": "^1.0.7",
     "ts-node": "^4.1.0",
-    "typescript": "^3.2.2"
+    "typescript": "^3.2.2",
+    "why-is-node-running": "^2.0.3"
   }
 }
