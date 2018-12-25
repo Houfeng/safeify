@@ -225,7 +225,7 @@ export class Safeify {
   private onScriptAsyncTimeout = (worker: Worker, script: Script) => {
     worker.runningScripts.forEach(item => {
       if (item.id === script.id) return;
-      this.pendingScripts.push(item.stop());
+      this.pendingScripts.unshift(item.stop());
     });
     script.error = "Script execution timed out.";
     this.handleScriptDone(worker, script, true);
