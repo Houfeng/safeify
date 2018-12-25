@@ -35,9 +35,10 @@ export class Script {
   public error: any;
   public timeout: number;
   public asyncTimeout: number;
+  private timer: number;
   public defer: Promise<any>;
-  public resolve: Function;
-  public reject: Function;
+  public resolve: (value?: any) => void;
+  public reject: (value?: any) => void;
   public params: any;
 
   constructor(options: IScriptOptions) {
@@ -49,6 +50,16 @@ export class Script {
       this.resolve = resolve;
       this.reject = reject;
     });
+  }
+
+  start(fn: Function) {
+    this.timer = setTimeout(fn, this.asyncTimeout);
+    return this;
+  }
+
+  stop() {
+    clearTimeout(this.timer);
+    return this;
   }
 
   toJSON() {

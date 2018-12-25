@@ -184,4 +184,21 @@ describe('Safeify', function () {
     assert.equal(0, safeVm.runningTotal);
   });
 
+  it('run: loop in micro-task', async function () {
+    const safeVm = new Safeify({
+      timeout: 500,
+      asyncTimeout: 500,
+      unrestricted: true
+    });
+    await safeVm.init();
+    let error;
+    try {
+      await safeVm.run(`return Promise.resolve().then(()=>{while(true);})`, context);
+    } catch (err) {
+      error = err.message;
+    }
+    await safeVm.distory();
+    assert.equal('Script execution timed out.', error);
+  });
+
 });
