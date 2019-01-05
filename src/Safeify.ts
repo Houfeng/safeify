@@ -8,15 +8,14 @@ import { IMessage } from "./IMessage";
 import { Script } from "./Script";
 import { WorkerState } from "./WorkerState";
 
-const { isFunction, getByPath } = require("ntils");
+const { isFunction, isNumber, getByPath } = require("ntils");
 const log = require("debug")("safeify");
 
 const defaultSandbox = Object.create(null);
-const defaultOptions = {
+const defaultOptions: ISafeifyOptions = {
   timeout: 1000,
-  asyncTimeout: 60000,
-  quantity: os.cpus().length,
-  sandbox: defaultSandbox,
+  asyncTimeout: 30000,
+  workers: os.cpus().length,
   cpuQuota: 0.5,
   memoryQuota: 500
 };
@@ -41,8 +40,21 @@ export class Safeify {
 
   constructor(opts: ISafeifyOptions = {}) {
     instances.push(this);
-    Object.assign(this.options, defaultOptions, opts);
-    if (this.options.quantity < 2) this.options.quantity = 2;
+    opts = this.normalize(opts);
+    this.options = { ...defaultOptions, ...opts };
+  }
+
+  private normalize(opts: ISafeifyOptions) {
+    opts = { ...opts };
+    // 兼容旧的 quantity 参数
+    if (!isNumber(opts.workers)) opts.workers = opts.quantity;
+    // 校验参数
+    if (!isNumber(opts.workers) || opts.workers < 2) opts.workers = 2;
+    if (!isNumber(opts.timeout)) opts.timeout = 1000;
+    if (!isNumber(opts.asyncTimeout) || opts.asyncTimeout < opts.timeout) {
+      opts.asyncTimeout = opts.timeout * 3;
+    }
+    return opts;
   }
 
   public async init() {
@@ -193,7 +205,7 @@ export class Safeify {
   }
 
   private async createWorkers() {
-    const num = this.options.quantity - this.healthyWorkers.length;
+    const num = this.options.workers - this.healthyWorkers.length;
     const workers = [];
     for (let i = 0; i < num; i++) {
       workers.push(
@@ -208,7 +220,10 @@ export class Safeify {
   }
 
   private execute() {
-    const worker = this.healthyWorkers.sort((a, b) => a.stats - b.stats)[0];
+    const worker =
+      this.options.greedy === false
+        ? this.healthyWorkers.find(w => w.stats < 1)
+        : this.healthyWorkers.sort((a, b) => a.stats - b.stats)[0];
     /* istanbul ignore if */
     if (!worker) return;
     log("execute pid", worker.process.pid);
@@ -249,8 +264,8 @@ export class Safeify {
     await this.init();
     code = [...this.presets, this.toCode(code), os.EOL].join(";");
     log("run", code);
-    const { timeout, asyncTimeout } = this.options;
-    const script = new Script({ code, timeout, asyncTimeout, sandbox });
+    const { timeout, asyncTimeout, unsafe } = this.options;
+    const script = new Script({ code, timeout, asyncTimeout, sandbox, unsafe });
     this.pendingScripts.push(script);
     this.execute();
     return script.defer;

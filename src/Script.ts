@@ -1,5 +1,6 @@
 import { IScriptOptions } from "./IScriptOptions";
 import { createCallProxy } from "./Proxy";
+import { IUnsafe } from "./IUnsafe";
 
 const IGNORE_PARAM = /^\_\_/;
 const {
@@ -40,6 +41,7 @@ export class Script {
   public resolve: (value?: any) => void;
   public reject: (value?: any) => void;
   public params: any;
+  public unsafe: IUnsafe;
 
   constructor(options: IScriptOptions) {
     Object.assign(this, options);
@@ -64,7 +66,16 @@ export class Script {
 
   toJSON() {
     // tslint:disable-next-line
-    const { id, code, result, error, timeout, asyncTimeout, params } = this;
-    return { id, code, result, error, timeout, asyncTimeout, params };
+    const {
+      id,
+      code,
+      result,
+      error,
+      timeout,
+      asyncTimeout,
+      params,
+      unsafe
+    } = this;
+    return { id, code, result, error, timeout, asyncTimeout, params, unsafe };
   }
 }

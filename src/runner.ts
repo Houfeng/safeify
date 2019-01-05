@@ -4,8 +4,10 @@ import { IMessage } from "./IMessage";
 import { Script } from "./Script";
 import { isCallProxy, getCallName } from "./Proxy";
 import { Call } from "./Call";
+import { IUnsafe } from "./IUnsafe";
+import { IAlias } from "./IAlias";
 
-const { each, isObject, isArray, isDate } = require("ntils");
+const { each, isObject, isString, isArray, isDate } = require("ntils");
 
 const pendingCalls: Call[] = [];
 
@@ -61,9 +63,24 @@ function convertParams(scriptId: string, params: any) {
   return result;
 }
 
+function attchUnsafe(sandbox: any, unsafe: IUnsafe) {
+  const { require: req, modules = [] } = unsafe;
+  if (req === false) return sandbox;
+  const method = isString(req) ? <string>req : "require";
+  sandbox[method] = (name: string) => {
+    if (modules === true) return require(name);
+    if (isArray(modules) && (<string[]>modules).includes(name)) {
+      return require(name);
+    }
+    if ((<IAlias>modules)[name]) return require((<IAlias>modules)[name]);
+    return null;
+  };
+}
+
 async function run(script: Script) {
-  const { timeout, code, params } = script;
+  const { timeout, code, params, unsafe } = script;
   const sandbox = convertParams(script.id, params);
+  if (unsafe) attchUnsafe(sandbox, unsafe);
   const vm = new VM({ sandbox, timeout });
   try {
     script.result = await vm.run(wrapCode(code));

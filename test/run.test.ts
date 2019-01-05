@@ -193,12 +193,117 @@ describe('Safeify', function () {
     await safeVm.init();
     let error;
     try {
-      await safeVm.run(`return Promise.resolve().then(()=>{while(true);})`, context);
+      await safeVm.run(
+        `return Promise.resolve().then(()=>{while(true);})`, context
+      );
     } catch (err) {
       error = err.message;
     }
     await safeVm.distory();
     assert.equal('Script execution timed out.', error);
+  });
+
+  it('run: unsafe named', async function () {
+    const safeVm = new Safeify({
+      timeout: 500,
+      asyncTimeout: 500,
+      unrestricted: true,
+      unsafe: {
+        require: 'xxx',
+        modules: ['ntils']
+      }
+    });
+    await safeVm.init();
+    let result
+    try {
+      result = await safeVm.run(`return xxx('ntils').isNumber(1)`, context);
+    } catch (err) {
+      console.log(err.message);
+    }
+    await safeVm.distory();
+    assert.equal(1, result);
+  });
+
+  it('run: unsafe default', async function () {
+    const safeVm = new Safeify({
+      timeout: 500,
+      asyncTimeout: 500,
+      unrestricted: true,
+      unsafe: {
+        modules: ['ntils']
+      }
+    });
+    await safeVm.init();
+    let result
+    try {
+      result = await safeVm.run(`return require('ntils').isNumber(1)`, context);
+    } catch (err) {
+      console.log(err.message);
+    }
+    await safeVm.distory();
+    assert.equal(1, result);
+  });
+
+  it('run: unsafe error', async function () {
+    const safeVm = new Safeify({
+      timeout: 500,
+      asyncTimeout: 500,
+      unrestricted: true,
+      unsafe: {
+        modules: []
+      }
+    });
+    await safeVm.init();
+    let error
+    try {
+      await safeVm.run(`return require('ntils').isNumber(1)`, context);
+    } catch (err) {
+      error = err.message;
+    }
+    await safeVm.distory();
+    assert.equal('Cannot read property \'isNumber\' of null', error);
+  });
+
+  it('run: unsafe any modules', async function () {
+    const safeVm = new Safeify({
+      timeout: 500,
+      asyncTimeout: 500,
+      unrestricted: true,
+      unsafe: {
+        modules: true
+      }
+    });
+    await safeVm.init();
+    let result
+    try {
+      result = await safeVm.run(`return require('ntils').isNumber(1)`, context);
+    } catch (err) {
+      console.log(err.message);
+    }
+    await safeVm.distory();
+    assert.equal(1, result);
+  });
+
+  it('run: unsafe by alias', async function () {
+    const safeVm = new Safeify({
+      timeout: 500,
+      asyncTimeout: 500,
+      unrestricted: true,
+      unsafe: {
+        modules: {
+          'n': 'ntils'
+        }
+      }
+    });
+    await safeVm.init();
+    let result
+    try {
+      result = await safeVm.run(`return require('n').isNumber(1)`, context);
+    } catch (err) {
+      console.log(err.message);
+    }
+    await safeVm.distory();
+    assert.equal(1, result);
   });
 
 });
