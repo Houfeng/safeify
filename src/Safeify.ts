@@ -49,7 +49,8 @@ export class Safeify {
     // 兼容旧的 quantity 参数
     if (!isNumber(opts.workers)) opts.workers = opts.quantity;
     // 校验参数
-    if (!isNumber(opts.workers) || opts.workers < 2) opts.workers = 2;
+    if (!isNumber(opts.workers)) opts.workers = defaultOptions.workers;
+    if (opts.workers < 2) opts.workers = 2;
     if (!isNumber(opts.timeout)) opts.timeout = 1000;
     if (!isNumber(opts.asyncTimeout) || opts.asyncTimeout < opts.timeout) {
       opts.asyncTimeout = opts.timeout * 3;

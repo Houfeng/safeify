@@ -10,6 +10,8 @@ console.time("debug");
 
   await safeVm.init();
 
+  console.log("workers", safeVm.workerTotal);
+
   const context = {
     a: 1,
     b: 2,
