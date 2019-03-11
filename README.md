@@ -49,7 +49,7 @@ import { Safeify } from "safeify";
   console.log('result', result);
 
   // 释放资源
-  safeVm.distory();
+  safeVm.destroy();
   
 })();
 ```

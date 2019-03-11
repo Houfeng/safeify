@@ -37,5 +37,5 @@ console.time("debug");
   console.timeEnd("测试");
   console.log("结束");
 
-  safeVm.distory();
+  safeVm.destroy();
 })();

@@ -33,7 +33,7 @@ describe('Safeify', function () {
     const result = await safeVm.run(
       `return system.calc(a,b, await getTime())`, context
     );
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(6, result);
   });
 
@@ -50,7 +50,7 @@ describe('Safeify', function () {
     } catch (err) {
       error = err.message;
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal('d is not defined', error);
   });
 
@@ -68,7 +68,7 @@ describe('Safeify', function () {
     } catch (err) {
       error = err.message;
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal('this is a error', error);
   });
 
@@ -85,7 +85,7 @@ describe('Safeify', function () {
     } catch (err) {
       error = err.message;
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal('Script execution timed out.', error);
   });
 
@@ -102,7 +102,7 @@ describe('Safeify', function () {
     } catch (err) {
       error = err.message;
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal('Script execution timed out.', error);
   });
 
@@ -120,7 +120,7 @@ describe('Safeify', function () {
     } catch (err) {
       error = err.message;
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal('__ignore is not defined', error);
   });
 
@@ -132,7 +132,7 @@ describe('Safeify', function () {
     });
     await safeVm.init();
     const result = await safeVm.run('');
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(undefined, result);
   });
 
@@ -146,7 +146,7 @@ describe('Safeify', function () {
     const result = await safeVm.run(function (system: any) {
       return system.calc(1, 2);
     }, context);
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(3, result);
   });
 
@@ -161,7 +161,7 @@ describe('Safeify', function () {
       const calc = system.calc;
     });
     const result = await safeVm.run(`return calc(1,2)`, context);
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(3, result);
   });
 
@@ -179,7 +179,7 @@ describe('Safeify', function () {
     const result = await safeVm.run(function (system: any) {
       return system.get(1);
     }, context);
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(1, result);
     assert.equal(0, safeVm.runningTotal);
   });
@@ -199,7 +199,7 @@ describe('Safeify', function () {
     } catch (err) {
       error = err.message;
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal('Script execution timed out.', error);
   });
 
@@ -220,7 +220,7 @@ describe('Safeify', function () {
     } catch (err) {
       console.log(err.message);
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(1, result);
   });
 
@@ -240,7 +240,7 @@ describe('Safeify', function () {
     } catch (err) {
       console.log(err.message);
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(1, result);
   });
 
@@ -260,7 +260,7 @@ describe('Safeify', function () {
     } catch (err) {
       error = err.message;
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal('Cannot read property \'isNumber\' of null', error);
   });
 
@@ -280,7 +280,7 @@ describe('Safeify', function () {
     } catch (err) {
       console.log(err.message);
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(1, result);
   });
 
@@ -302,7 +302,7 @@ describe('Safeify', function () {
     } catch (err) {
       console.log(err.message);
     }
-    await safeVm.distory();
+    await safeVm.destroy();
     assert.equal(1, result);
   });
 

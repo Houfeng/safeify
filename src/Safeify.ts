@@ -27,7 +27,7 @@ const childExecArgv = (process.execArgv || []).map(flag =>
 const instances: Safeify[] = [];
 
 process.once("exit", () => {
-  instances.forEach(instance => instance.distory());
+  instances.forEach(instance => instance.destroy());
 });
 
 export class Safeify {
@@ -68,14 +68,22 @@ export class Safeify {
     await this.createWorkers();
   }
 
-  public distory = () => {
+  public destroy = () => {
     const index = instances.indexOf(this);
     if (index > -1) instances.splice(index, 1);
-    this.workers.forEach(worker => this.distoryWorker(worker));
+    this.workers.forEach(worker => this.destroyWorker(worker));
     this.workers = [];
   };
 
-  private distoryWorker(worker: Worker) {
+  /**
+   * @deprecated Please use destroy' instead of 'distory'
+   */
+  public distory = () => {
+    console.warn("deprecated:", `Please use 'destroy' instead of 'distory'`);
+    return this.destroy();
+  };
+
+  private destroyWorker(worker: Worker) {
     worker.state = WorkerState.unhealthy;
     worker.runningScripts.forEach(script => script.stop());
     worker.process.removeAllListeners("message");
@@ -138,7 +146,7 @@ export class Safeify {
   private handleScriptDone(worker: Worker, script: any, kill: boolean) {
     if (!worker || !script) return;
     if (kill) {
-      this.distoryWorker(worker);
+      this.destroyWorker(worker);
     } else {
       worker.stats--;
     }
