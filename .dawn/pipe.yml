@@ -27,4 +27,4 @@ publish:
   - name: shell
     script:
       - dn test
-      - npm pu
+      - npm pu --registry=http://registry.npmjs.org

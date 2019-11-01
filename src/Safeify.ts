@@ -86,9 +86,9 @@ export class Safeify {
   private destroyWorker(worker: Worker) {
     worker.state = WorkerState.unhealthy;
     worker.runningScripts.forEach(script => script.stop());
+    if (worker.process.connected) worker.process.disconnect();
     worker.process.removeAllListeners("message");
     worker.process.removeAllListeners("disconnect");
-    if (worker.process.connected) worker.process.disconnect();
     if (!worker.process.killed) worker.process.kill("SIGKILL");
   }
 
