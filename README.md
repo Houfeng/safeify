@@ -45,7 +45,7 @@ import { Safeify } from "safeify";
   };
 
   // 执行动态代码
-  const result= await safeVm.run(`return system.add(1,2)`, context));
+  const result= await safeVm.run(`return system.add(1,2)`, context);
   console.log('result', result);
 
   // 释放资源
