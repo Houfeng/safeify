@@ -86,9 +86,9 @@ export class Safeify {
   private destroyWorker(worker: Worker) {
     worker.state = WorkerState.unhealthy;
     worker.runningScripts.forEach(script => script.stop());
-    if (worker.process.connected) worker.process.disconnect();
     worker.process.removeAllListeners("message");
     worker.process.removeAllListeners("disconnect");
+    if (worker.process.connected) worker.process.disconnect();
     if (!worker.process.killed) worker.process.kill("SIGKILL");
   }
 
@@ -146,7 +146,7 @@ export class Safeify {
   private handleScriptDone(worker: Worker, script: any, kill: boolean) {
     if (!worker || !script) return;
     if (kill) {
-      this.destroyWorker(worker);
+      worker.process.disconnect();
     } else {
       worker.stats--;
     }
@@ -176,9 +176,19 @@ export class Safeify {
   /* istanbul ignore next */
   private onWorkerDisconnect = async () => {
     log("onWorkerDisconnect", "pendingScripts", this.pendingScripts.length);
-    this.workers = this.workers.filter(item => item.process.connected);
+    const connectedWorkers: Worker[] = [];
+    const unconnectedWorkers: Worker[] = [];
+    this.workers.forEach(item => {
+      if (item.process.connected) {
+        connectedWorkers.push(item);
+      } else {
+        unconnectedWorkers.push(item);
+      }
+    });
+    this.workers = connectedWorkers;
     await this.createWorkers();
     if (this.pendingScripts.length > 0) this.execute();
+    unconnectedWorkers.forEach(item => this.destroyWorker(item));
   };
 
   private createControlGroup() {
