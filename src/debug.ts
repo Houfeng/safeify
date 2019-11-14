@@ -18,7 +18,6 @@ console.time("debug");
     b: 2,
     system: {
       add(a: number, b: number) {
-        // return new Promise(() => {});
         return (a + b) * 2;
       }
     }
@@ -36,6 +35,6 @@ console.time("debug");
     console.log("失败", err.stack);
   }
   console.timeEnd("测试");
-  safeVm.destroy();
+  await safeVm.destroy();
   console.log("结束");
 })();

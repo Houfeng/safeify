@@ -86,9 +86,9 @@ export class Safeify {
   private destroyWorker(worker: Worker) {
     worker.state = WorkerState.unhealthy;
     worker.runningScripts.forEach(script => script.stop());
-    if (worker.process.connected) worker.process.disconnect();
     worker.process.removeAllListeners("message");
     worker.process.removeAllListeners("disconnect");
+    if (worker.process.connected) worker.process.disconnect();
     if (!worker.process.killed) worker.process.kill("SIGKILL");
   }
 
@@ -143,10 +143,11 @@ export class Safeify {
     this.handleScriptDone(worker, script, false);
   }
 
-  private handleScriptDone(worker: Worker, script: any, kill: boolean) {
+  private async handleScriptDone(worker: Worker, script: any, kill: boolean) {
     if (!worker || !script) return;
     if (kill) {
-      this.destroyWorker(worker);
+      worker.state = WorkerState.unhealthy;
+      await this.alignmentWorker();
     } else {
       worker.stats--;
     }
@@ -173,12 +174,26 @@ export class Safeify {
     }
   }
 
+  private alignmentWorker = async () => {
+    const healthyWorkers: Worker[] = [];
+    const unhealthyWorkers: Worker[] = [];
+    this.workers.forEach(item => {
+      if (item.state === WorkerState.healthy && item.process.connected) {
+        healthyWorkers.push(item);
+      } else {
+        unhealthyWorkers.push(item);
+      }
+    });
+    this.workers = healthyWorkers;
+    await this.createWorkers();
+    if (this.pendingScripts.length > 0) this.execute();
+    unhealthyWorkers.forEach(item => this.destroyWorker(item));
+  };
+
   /* istanbul ignore next */
   private onWorkerDisconnect = async () => {
     log("onWorkerDisconnect", "pendingScripts", this.pendingScripts.length);
-    this.workers = this.workers.filter(item => item.process.connected);
-    await this.createWorkers();
-    if (this.pendingScripts.length > 0) this.execute();
+    await this.alignmentWorker();
   };
 
   private createControlGroup() {
