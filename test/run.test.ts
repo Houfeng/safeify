@@ -306,4 +306,25 @@ describe('Safeify', function () {
     assert.equal(1, result);
   });
 
+  it('run: evoke new workers', async function () {
+    const safeVm = new Safeify({
+      timeout: 500,
+      asyncTimeout: 500,
+      unrestricted: true,
+      workers: 2,
+    });
+    await safeVm.init();
+    let result
+    try {
+      await Promise.all(new Array(10).map(_ => {
+        return safeVm.run(`return new Promise(()=>{})`, context)
+      }));
+      result = await safeVm.run(`return true`, context);
+    } catch (err) {
+      console.log(err.message);
+    }
+    await safeVm.destroy();
+    assert.equal(true, result);
+  });
+
 });
