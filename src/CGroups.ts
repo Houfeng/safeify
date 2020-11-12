@@ -44,7 +44,7 @@ export class CGroups {
           settingNames.map(name => {
             const value = setting[name];
             const filename = `${groupPath}/${resName}.${name}`;
-            return fs.writeFile(filename, value);
+            return fs.writeFile(filename, String(value));
           })
         );
       })
