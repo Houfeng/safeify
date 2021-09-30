@@ -1,4 +1,5 @@
 import * as  assert from 'assert';
+
 import { Safeify } from "../src";
 
 const context = {
@@ -79,14 +80,14 @@ describe('Safeify', function () {
       unrestricted: true
     });
     await safeVm.init();
-    let error;
+    let error: string;
     try {
       await safeVm.run(`while(true);`, context);
     } catch (err) {
       error = err.message;
     }
     await safeVm.destroy();
-    assert.equal('Script execution timed out.', error);
+    assert.equal(error.includes('Script execution timed out'), true);
   });
 
   it('run: async timeout', async function () {

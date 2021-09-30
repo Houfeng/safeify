@@ -1,6 +1,6 @@
 {
   "name": "safeify",
-  "version": "5.0.5",
+  "version": "5.0.6",
   "description": "",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
@@ -11,18 +11,17 @@
   "author": "",
   "license": "Apache License 2.0",
   "dependencies": {
-    "@types/mkdirp": "^0.5.2",
-    "@types/mz": "^0.0.32",
     "debug": "^3.1.0",
     "mkdirp": "^0.5.1",
     "mz": "^2.7.0",
-    "ntils": "^4.0.0",
-    "shify": "^3.0.6",
-    "vm2": "^3.5.2"
+    "ntils": "^5.2.1",
+    "vm2": "^3.9.3"
   },
   "devDependencies": {
     "@types/debug": "^0.0.30",
     "@types/js-yaml": "^3.10.1",
+    "@types/mkdirp": "^0.5.2",
+    "@types/mz": "^0.0.32",
     "@types/node": "^9.4.5",
     "coveralls": "^3.0.0",
     "dawn": "^1.8.0",
